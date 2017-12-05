@@ -1,5 +1,36 @@
 # SPDX-License-Identifier: LGPL-2.1+
 
+project('systemd-boot-me176c', 'c',
+        version : '241',
+        license : 'LGPLv2+',
+        default_options: [
+                'c_std=gnu99',
+        ],
+        meson_version : '>= 0.46',
+       )
+
+cc = meson.get_compiler('c')
+want_tests = get_option('tests')
+
+efi_arch = host_machine.cpu_family()
+
+if efi_arch == 'x86'
+        EFI_MACHINE_TYPE_NAME = 'ia32'
+        gnu_efi_arch = 'ia32'
+elif efi_arch == 'x86_64'
+        EFI_MACHINE_TYPE_NAME = 'x64'
+        gnu_efi_arch = 'x86_64'
+elif efi_arch == 'arm'
+        EFI_MACHINE_TYPE_NAME = 'arm'
+        gnu_efi_arch = 'arm'
+elif efi_arch == 'aarch64'
+        EFI_MACHINE_TYPE_NAME = 'aa64'
+        gnu_efi_arch = 'aarch64'
+else
+        EFI_MACHINE_TYPE_NAME = ''
+        gnu_efi_arch = ''
+endif
+
 efi_headers = files('''
         console.h
         disk.h
@@ -32,7 +63,7 @@ stub_sources = '''
         stub.c
 '''.split()
 
-if conf.get('ENABLE_EFI') == 1 and get_option('gnu-efi') != 'false'
+if get_option('gnu-efi') != 'false'
         efi_cc = get_option('efi-cc')
         if efi_cc.length() == 0
                 efi_cc = cc.cmd_array()
@@ -78,6 +109,7 @@ endif
 
 if have_gnu_efi
         efi_conf = configuration_data()
+        efi_conf.set_quoted('GIT_VERSION', meson.project_version()) # TODO
         efi_conf.set_quoted('EFI_MACHINE_TYPE_NAME', EFI_MACHINE_TYPE_NAME)
         efi_conf.set10('ENABLE_TPM', get_option('tpm'))
         efi_conf.set('SD_TPM_PCR', get_option('tpm-pcrindex'))
@@ -117,7 +149,7 @@ if have_gnu_efi
                         '-isystem', efi_incdir,
                         '-isystem', join_paths(efi_incdir, gnu_efi_path_arch),
                         '-include', efi_config_h,
-                        '-include', version_h]
+                       ]
         if efi_arch == 'x86_64'
                 compile_args += ['-mno-red-zone',
                                  '-mno-sse',
@@ -198,20 +230,9 @@ if have_gnu_efi
                                   + efi_format +
                                   ['@INPUT@', '@OUTPUT@'],
                         install : true,
-                        install_dir : bootlibdir)
+                        install_dir : '.')
 
                 set_variable(tuple[0].underscorify(), so)
                 set_variable(tuple[0].underscorify() + '_stub', stub)
         endforeach
-endif
-
-############################################################
-
-if have_gnu_efi
-        test_efi_disk_img = custom_target(
-                'test-efi-disk.img',
-                input : [systemd_boot_so, stub_so_stub],
-                output : 'test-efi-disk.img',
-                command : [test_efi_create_disk_sh, '@OUTPUT@',
-                           '@INPUT0@', '@INPUT1@', splash_bmp])
 endif
