@@ -660,12 +660,20 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                 case KEYPRESS(0, 0, 'k'):
                         if (idx_highlight > 0)
                                 idx_highlight--;
+                        else {
+                                refresh = TRUE;
+                                idx_highlight = config->entry_count-1;
+                        }
                         break;
 
                 case KEYPRESS(0, SCAN_DOWN, 0):
                 case KEYPRESS(0, 0, 'j'):
                         if (idx_highlight < config->entry_count-1)
                                 idx_highlight++;
+                        else {
+                                refresh = TRUE;
+                                idx_highlight = 0;
+                        }
                         break;
 
                 case KEYPRESS(0, SCAN_HOME, 0):
