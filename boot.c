@@ -1790,17 +1790,24 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         /* select entry or show menu when key is pressed or timeout is set */
         if (config.timeout_sec == 0) {
                 UINT64 key;
+                int i;
 
-                err = console_key_read(&key, FALSE);
-                if (!EFI_ERROR(err)) {
-                        INT16 idx;
+                /* Some firmwares fail to report key strokes for a few milliseconds */
+                for (i = 0; i < 100; i++) {
+                        err = console_key_read(&key, FALSE);
+                        if (!EFI_ERROR(err)) {
+                                INT16 idx;
 
-                        /* find matching key in config entries */
-                        idx = entry_lookup_key(&config, config.idx_default, KEYCHAR(key));
-                        if (idx >= 0)
-                                config.idx_default = idx;
-                        else
-                                menu = TRUE;
+                                /* find matching key in config entries */
+                                idx = entry_lookup_key(&config, config.idx_default, KEYCHAR(key));
+                                if (idx >= 0)
+                                        config.idx_default = idx;
+                                else
+                                        menu = TRUE;
+                                break;
+                        }
+
+                        uefi_call_wrapper(BS->Stall, 1, 1 * 1000);
                 }
         } else
                 menu = TRUE;
