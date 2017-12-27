@@ -685,7 +685,6 @@ static BOOLEAN menu_run(
                 idx_highlight_prev = idx_highlight;
 
                 switch (key) {
-                case KEYPRESS(0, SCAN_UP, 0):
                 case KEYPRESS(0, 0, 'k'):
                         if (idx_highlight > 0)
                                 idx_highlight--;
@@ -734,6 +733,7 @@ static BOOLEAN menu_run(
                                 idx_highlight = config->entry_count-1;
                         break;
 
+                case KEYPRESS(0, SCAN_UP, 0):
                 case KEYPRESS(0, 0, CHAR_LINEFEED):
                 case KEYPRESS(0, 0, CHAR_CARRIAGE_RETURN):
                         exit = TRUE;
