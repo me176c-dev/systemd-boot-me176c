@@ -1271,6 +1271,12 @@ static VOID config_default_entry_select(Config *config) {
                                 break;
                         }
 
+                if (!found && StrCmp(L"bootloader", entry_oneshot) == 0) {
+                        // Show menu without timeout
+                        config->timeout_sec = -1;
+                        found = TRUE;
+                }
+
                 config->entry_oneshot = StrDuplicate(entry_oneshot);
                 efivar_set(L"LoaderEntryOneShot", NULL, TRUE);
                 if (found)
