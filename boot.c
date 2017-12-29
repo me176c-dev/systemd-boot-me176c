@@ -1555,6 +1555,8 @@ static VOID config_default_entry_select(Config *config) {
         EFI_STATUS err;
         INTN i;
 
+        config->idx_default_efivar = -1;
+
         /*
          * The EFI variable to specify a boot entry for the next, and only the
          * next reboot. The variable is always cleared directly after it is read.
@@ -1588,7 +1590,6 @@ static VOID config_default_entry_select(Config *config) {
                         return;
                 }
         }
-        config->idx_default_efivar = -1;
 
         if (config->entry_count == 0)
                 return;
