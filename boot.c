@@ -1696,6 +1696,14 @@ out_unload:
         return err;
 }
 
+static inline EFI_STATUS reset_system(EFI_RESET_TYPE reset_type) {
+        EFI_STATUS err;
+        err = uefi_call_wrapper(RT->ResetSystem, 4, reset_type, EFI_SUCCESS, 0, NULL);
+        Print(L"Error calling ResetSystem: %r", err);
+        uefi_call_wrapper(BS->Stall, 1, 3 * 1000 * 1000);
+        return err;
+}
+
 static EFI_STATUS reboot_into_firmware(VOID) {
         _cleanup_freepool_ CHAR8 *b = NULL;
         UINTN size;
@@ -1712,10 +1720,11 @@ static EFI_STATUS reboot_into_firmware(VOID) {
         if (EFI_ERROR(err))
                 return err;
 
-        err = uefi_call_wrapper(RT->ResetSystem, 4, EfiResetCold, EFI_SUCCESS, 0, NULL);
-        Print(L"Error calling ResetSystem: %r", err);
-        uefi_call_wrapper(BS->Stall, 1, 3 * 1000 * 1000);
-        return err;
+        return reset_system(EfiResetCold);
+}
+
+static EFI_STATUS power_off(VOID) {
+    return reset_system(EfiResetShutdown);
 }
 
 static VOID config_free(Config *config) {
@@ -1813,6 +1822,9 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         config_entry_add_call(&config, L"Reboot Into Firmware Interface", reboot_into_firmware);
                 FreePool(b);
         }
+
+        /* Add power off option */
+        config_entry_add_call(&config, L"Power Off", power_off);
 
         if (config.entry_count == 0) {
                 Print(L"No loader found. Configuration files in \\loader\\entries\\*.conf are needed.");
