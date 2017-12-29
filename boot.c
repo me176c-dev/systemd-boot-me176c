@@ -1412,11 +1412,13 @@ static VOID config_title_generate(Config *config) {
         }
 }
 
-static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, EFI_STATUS (*call)(VOID)) {
+static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, CHAR16 *file, EFI_STATUS (*call)(VOID)) {
         ConfigEntry *entry;
 
         entry = AllocateZeroPool(sizeof(ConfigEntry));
         entry->title = StrDuplicate(title);
+        if (file)
+                entry->file = StrDuplicate(file);
         entry->call = call;
         entry->no_autoselect = TRUE;
         config_add_entry(config, entry);
@@ -1796,16 +1798,16 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 UINT64 osind = (UINT64)*b;
 
                 if (osind & EFI_OS_INDICATIONS_BOOT_TO_FW_UI)
-                        config_entry_add_call(&config, L"Reboot Into Firmware Interface", reboot_into_firmware);
+                        config_entry_add_call(&config, L"Reboot Into Firmware Interface", L"firmware", reboot_into_firmware);
 
                 if (osind & EFI_OS_INDICATIONS_BOOT_TO_RESCUE_MODE)
-                        config_entry_add_call(&config, L"Reboot Into Rescue Mode", reboot_into_rescue_mode);
+                        config_entry_add_call(&config, L"Reboot Into Rescue Mode", L"dnx", reboot_into_rescue_mode);
 
                 FreePool(b);
         }
 
         /* Add power off option */
-        config_entry_add_call(&config, L"Power Off", power_off);
+        config_entry_add_call(&config, L"Power Off", NULL, power_off);
 
         if (config.entry_count == 0) {
                 Print(L"No loader found. Configuration files in \\loader\\entries\\*.conf are needed.");
@@ -1859,12 +1861,12 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0x10000, 0, NULL);
                         if (!menu_run(&config, &entry, loaded_image_path))
                                 break;
+                }
 
-                        /* run special entry like "reboot" */
-                        if (entry->call) {
-                                entry->call();
-                                continue;
-                        }
+                /* run special entry like "reboot" */
+                if (entry->call) {
+                        entry->call();
+                        continue;
                 }
 
                 /* export the selected boot entry to the system */
