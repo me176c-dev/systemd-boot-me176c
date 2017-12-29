@@ -16,6 +16,8 @@
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
 #endif
 
+#define EFI_OS_INDICATIONS_BOOT_TO_RESCUE_MODE  (1<<5)
+
 /* magic string to find in the binary image */
 static const char __attribute__((used)) magic[] = "#### LoaderInfo: systemd-boot " GIT_VERSION " ####";
 
@@ -2034,13 +2036,10 @@ static inline EFI_STATUS reset_system(EFI_RESET_TYPE reset_type) {
         return err;
 }
 
-static EFI_STATUS reboot_into_firmware(VOID) {
+static EFI_STATUS reboot_os_indication(UINT64 osind) {
         _cleanup_freepool_ CHAR8 *b = NULL;
         UINTN size;
-        UINT64 osind;
         EFI_STATUS err;
-
-        osind = EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
 
         err = efivar_get_raw(&global_guid, L"OsIndications", &b, &size);
         if (!EFI_ERROR(err))
@@ -2051,6 +2050,14 @@ static EFI_STATUS reboot_into_firmware(VOID) {
                 return err;
 
         return reset_system(EfiResetCold);
+}
+
+static EFI_STATUS reboot_into_firmware(VOID) {
+        return reboot_os_indication(EFI_OS_INDICATIONS_BOOT_TO_FW_UI);
+}
+
+static EFI_STATUS reboot_into_rescue_mode(VOID) {
+        return reboot_os_indication(EFI_OS_INDICATIONS_BOOT_TO_RESCUE_MODE);
 }
 
 static EFI_STATUS power_off(VOID) {
@@ -2182,6 +2189,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
 
                 if (osind & EFI_OS_INDICATIONS_BOOT_TO_FW_UI)
                         config_entry_add_call(&config, L"auto-reboot-to-firmware-setup", L"Reboot Into Firmware Interface", reboot_into_firmware);
+                if (osind & EFI_OS_INDICATIONS_BOOT_TO_RESCUE_MODE)
+                        config_entry_add_call(&config, L"auto-reboot-to-rescue-mode", L"Reboot Into Rescue Mode", reboot_into_rescue_mode);
                 FreePool(b);
         }
 
