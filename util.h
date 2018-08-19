@@ -12,6 +12,7 @@ static inline const CHAR16 *yes_no(BOOLEAN b) {
 }
 
 EFI_STATUS parse_boolean(const CHAR8 *v, BOOLEAN *b);
+EFI_STATUS parse_guid(const CHAR8 *v, EFI_GUID *guid);
 
 UINT64 ticks_read(void);
 UINT64 ticks_freq(void);

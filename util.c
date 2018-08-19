@@ -82,6 +82,55 @@ EFI_STATUS parse_boolean(const CHAR8 *v, BOOLEAN *b) {
         return EFI_INVALID_PARAMETER;
 }
 
+#define DECLARE_PARSE_HEX(n)\
+static BOOLEAN parse_hex##n(const CHAR8 **input, UINT##n *u) {\
+        UINTN i; CHAR8 c;\
+        for (i = 0; i < sizeof(UINT##n) * 2; ++i) {\
+                c = *((*input)++);\
+                if (c >= '0' && c <= '9')\
+                        *u = *u << 4 | (c - '0');\
+                else if (c >= 'A' && c <= 'F')\
+                        *u = *u << 4 | (c - 'A' + 10);\
+                else if (c >= 'a' && c <= 'f')\
+                        *u = *u << 4 | (c - 'a' + 10);\
+                else{\
+                        return FALSE;\
+                }\
+        }\
+        return TRUE;\
+}
+
+DECLARE_PARSE_HEX(8)
+DECLARE_PARSE_HEX(16)
+DECLARE_PARSE_HEX(32)
+
+#define GUID_LENGTH  36
+#define CHECK_DASH(input) *((input)++) == '-'
+
+EFI_STATUS parse_guid(const CHAR8 *input, EFI_GUID *guid) {
+        if (strlena(input) != GUID_LENGTH) {
+                return EFI_INVALID_PARAMETER;
+        }
+
+        if (parse_hex32(&input, &guid->Data1)
+                && CHECK_DASH(input) && parse_hex16(&input, &guid->Data2)
+                && CHECK_DASH(input) && parse_hex16(&input, &guid->Data3)
+                && CHECK_DASH(input)
+                        && parse_hex8(&input, &guid->Data4[0])
+                        && parse_hex8(&input, &guid->Data4[1])
+                && CHECK_DASH(input)) {
+
+                UINTN i;
+                for (i = 2; i < 8; ++i)
+                        if (!parse_hex8(&input, &guid->Data4[i]))
+                                return EFI_INVALID_PARAMETER;
+
+                return EFI_SUCCESS;
+        }
+
+        return EFI_INVALID_PARAMETER;
+}
+
 EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, const CHAR16 *name, const VOID *buf, UINTN size, BOOLEAN persistent) {
         UINT32 flags;
 

@@ -1289,6 +1289,7 @@ static VOID config_entry_add_from_file(
         entry = AllocatePool(sizeof(ConfigEntry));
 
         *entry = (ConfigEntry) {
+                .device = device,
                 .tries_done = (UINTN) -1,
                 .tries_left = (UINTN) -1,
         };
@@ -1375,6 +1376,17 @@ static VOID config_entry_add_from_file(
 
                         continue;
                 }
+
+                if (strcmpa((CHAR8 *)"volume", key) == 0) {
+                        EFI_GUID volume;
+                        EFI_HANDLE *new;
+                        if (EFI_ERROR(parse_guid(value, &volume)))
+                                continue;
+                        if (EFI_ERROR(disk_find_by_part_uuid(&new, &volume)))
+                                continue;
+
+                        entry->device = new;
+                }
         }
 
         if (entry->type == LOADER_UNDEFINED) {
@@ -1396,7 +1408,6 @@ static VOID config_entry_add_from_file(
                 }
         }
 
-        entry->device = device;
         entry->id = StrDuplicate(file);
         len = StrLen(entry->id);
         /* remove ".conf" */
