@@ -1052,6 +1052,7 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
         _cleanup_freepool_ CHAR16 *initrd = NULL;
 
         entry = AllocateZeroPool(sizeof(ConfigEntry));
+        entry->device = device;
 
         line = content;
         while ((line = line_get_key_value(content, (CHAR8 *)" \t", &pos, &key, &value))) {
@@ -1136,6 +1137,17 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
 
                         continue;
                 }
+
+                if (strcmpa((CHAR8 *)"volume", key) == 0) {
+                        EFI_GUID volume;
+                        EFI_HANDLE *new;
+                        if (EFI_ERROR(parse_guid(value, &volume)))
+                                continue;
+                        if (EFI_ERROR(disk_find_by_part_uuid(&new, &volume)))
+                                continue;
+
+                        entry->device = new;
+                }
         }
 
         if (entry->type == LOADER_UNDEFINED) {
@@ -1158,7 +1170,6 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
                 }
         }
 
-        entry->device = device;
         entry->file = StrDuplicate(file);
         len = StrLen(entry->file);
         /* remove ".conf" */

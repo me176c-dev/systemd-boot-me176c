@@ -33,3 +33,19 @@ EFI_STATUS disk_get_part_uuid(EFI_HANDLE *handle, CHAR16 uuid[37]) {
 
         return EFI_NOT_FOUND;
 }
+
+EFI_STATUS disk_find_by_part_uuid(EFI_HANDLE **handle, EFI_GUID *guid) {
+        UINTN handle_no;
+        _cleanup_freepool_ EFI_HANDLE *handles = NULL;
+        EFI_STATUS err = LibLocateHandleByDiskSignature(
+                                MBR_TYPE_EFI_PARTITION_TABLE_HEADER, SIGNATURE_TYPE_GUID,
+                                guid, &handle_no, &handles);
+        if (EFI_ERROR(err))
+                return err;
+
+        if (handle_no == 0)
+                return EFI_NOT_FOUND;
+
+        *handle = handles[0];
+        return EFI_SUCCESS;
+}
