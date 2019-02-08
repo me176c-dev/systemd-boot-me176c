@@ -27,6 +27,7 @@ enum loader_type {
         LOADER_UNDEFINED,
         LOADER_EFI,
         LOADER_LINUX,
+        LOADER_ANDROID,
 };
 
 typedef struct {
@@ -1321,6 +1322,14 @@ static VOID config_entry_add_from_file(
                         continue;
                 }
 
+                if (strcmpa((CHAR8 *)"android", key) == 0) {
+                        FreePool(entry->loader);
+                        entry->type = LOADER_ANDROID;
+                        entry->loader = stra_to_str(value);
+                        entry->key = 'a';
+                        continue;
+                }
+
                 if (strcmpa((CHAR8 *)"efi", key) == 0) {
                         entry->type = LOADER_EFI;
                         FreePool(entry->loader);
@@ -1395,7 +1404,7 @@ static VOID config_entry_add_from_file(
         }
 
         /* add initrd= to options */
-        if (entry->type == LOADER_LINUX && initrd) {
+        if ((entry->type == LOADER_LINUX || entry->type == LOADER_ANDROID) && initrd) {
                 if (entry->options) {
                         CHAR16 *s;
 
@@ -1414,6 +1423,24 @@ static VOID config_entry_add_from_file(
         if (len > 5)
                 entry->id[len - 5] = '\0';
         StrLwr(entry->id);
+
+        if (entry->type == LOADER_ANDROID) {
+                if (entry->loader) {
+                        CHAR16 *s;
+                        if (entry->options) {
+                                s = PoolPrint(L"%s %s -- %s", entry->id,
+                                        entry->loader, entry->options);
+                                FreePool(entry->options);
+                        } else {
+                                s = PoolPrint(L"%s %s",
+                                        entry->id, entry->loader);
+                        }
+                        entry->options = s;
+                        FreePool(entry->loader);
+                }
+
+                entry->loader = L"" ANDROID_EFI_PATH;
+        }
 
         config_add_entry(config, entry);
 

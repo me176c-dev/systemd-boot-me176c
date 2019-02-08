@@ -18,6 +18,8 @@ option('efi-includedir', type : 'string', value : '/usr/include/efi',
        description : 'path to the EFI header directory')
 option('tpm-pcrindex', type : 'integer', value : 8,
        description : 'TPM PCR register number to use')
+option('android-efi', type : 'string', value : '/android.efi',
+       description : 'Path to android.efi binary for booting Android images (optional)')
 
 option('tests', type : 'combo', choices : ['true', 'false'],
        description : 'enable tests')
