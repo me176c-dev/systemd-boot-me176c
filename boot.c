@@ -1552,6 +1552,21 @@ static INTN config_entry_find(Config *config, CHAR16 *id) {
         return -1;
 }
 
+static INTN config_entry_find_with_fallback(Config *config, CHAR16 *id) {
+        INTN i = config_entry_find(config, id);
+        if (i >= 0) {
+                return i;
+        }
+
+        if (StrCmp(L"bootloader", id) == 0)
+                config->force_menu = TRUE; // Show menu without timeout
+        else if (StrCmp(L"firmware", id) == 0)
+                return config_entry_find(config, L"auto-reboot-to-firmware-setup");
+        else if (StrCmp(L"dnx", id) == 0)
+                return config_entry_find(config, L"auto-reboot-to-rescue-mode");
+        return i;
+}
+
 static VOID config_default_entry_select(Config *config) {
         _cleanup_freepool_ CHAR16 *entry_oneshot = NULL, *entry_default = NULL;
         EFI_STATUS err;
@@ -1569,7 +1584,7 @@ static VOID config_default_entry_select(Config *config) {
                 config->entry_oneshot = StrDuplicate(entry_oneshot);
                 efivar_set(L"LoaderEntryOneShot", NULL, TRUE);
 
-                i = config_entry_find(config, entry_oneshot);
+                i = config_entry_find_with_fallback(config, entry_oneshot);
                 if (i >= 0) {
                         config->idx_default = i;
                         return;
